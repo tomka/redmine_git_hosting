@@ -174,8 +174,14 @@
 
 	<p>
 		<label><%= l(:label_hook_installed)%></label>
-		<%= image_tag((GitHosting.check_hooks_installed==true ? 'true.png' : 'exclamation.png'), :style => "vertical-align:bottom;") %>
-		<em><%= (GitHosting.check_hooks_installed==true ? '' : GitHosting.check_hooks_installed) %></em>
+		<%= image_tag((GitHosting.check_hook_files_installed==true ? 'true.png' : 'exclamation.png'), :style => "vertical-align:bottom;") %>
+		<em><%= (GitHosting.check_hook_files_installed==true ? '' : GitHosting.check_hook_files_installed) %></em>
+		<br />
+	</p>
+	<p>
+		<label><%= l(:label_hook_dir_installed)%></label>
+		<%= image_tag((GitHosting.check_hook_dir_installed==true ? 'true.png' : 'exclamation.png'), :style => "vertical-align:bottom;") %>
+		<em><%= (GitHosting.check_hook_dir_installed==true ? '' : GitHosting.check_hook_dir_installed) %></em>
 		<br />
 	</p>
 

@@ -1172,6 +1172,22 @@ module GitHosting
 	end
 	installed
     end
+    def self.check_hook_dir_installed
+	installed = false
+	if lock(5)
+	    installed = GitAdapterHooks.check_hook_dir_installed
+	    unlock()
+	end
+	installed
+    end
+    def self.check_hook_files_installed
+	installed = false
+	if lock(5)
+	    installed = GitAdapterHooks.check_hook_files_installed
+	    unlock()
+	end
+	installed
+    end
     def self.setup_hooks(projects=nil)
 	if lock(5)
 	    GitAdapterHooks.setup_hooks(projects)
