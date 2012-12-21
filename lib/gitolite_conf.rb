@@ -204,7 +204,7 @@ module GitHosting
 		    end
 		end
 		# If no admin key in repo, delete any residual
-		@repositories.delete(ADMIN_REPO) unless self.class.has_admin_key?
+		#@repositories.delete(ADMIN_REPO) unless self.class.has_admin_key?
 
 		@original_content = @original_content.join
 	    rescue => e
@@ -228,6 +228,7 @@ module GitHosting
 		    content << "\tRW+\t=\t#{admin_key}"
 		else
 		    # If no repo, put in a default -- will try to fix later if problem.
+			GitHosting.logger.info "Setting admin key"	
 		    content << "\tRW+\t=\t#{DEFAULT_ADMIN_KEY_NAME}"
 		end
 		content << ""

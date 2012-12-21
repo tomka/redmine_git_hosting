@@ -387,8 +387,8 @@ module GitHosting
 	while retries > 0
 	    is_locked = @@lock_file.flock(File::LOCK_EX|File::LOCK_NB)
 	    retries-=1
-	    if (!is_locked) && retries > 0
-		sleep 1
+        if (!is_locked) && retries > 0
+		  sleep 1
 	    end
 	end
 	return is_locked
@@ -415,6 +415,7 @@ module GitHosting
 	    logger.error message
 	    raise GitHostingException, "Shell Error"
 	end
+	return result
     end
 
     # Try to get a cloned version of gitolite-admin repository.
@@ -626,6 +627,9 @@ module GitHosting
 	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' add conf/#{gitolite_conf}]
 	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' config user.email '#{Setting.mail_from}']
 	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' config user.name 'Redmine']
+diff = shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' diff --staged]
+diff_msg = "  "+diff.split("\n").join("\n  ")
+logger.info "Output: #{diff_msg}"
 	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' commit -a -m '#{message}']
 	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' push ]
 	rescue
@@ -792,6 +796,11 @@ module GitHosting
 		# In preparation for resync_all, below
 		old_keyhash.delete(cur_token)
 	    end
+		logger.info "First output"
+	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' add conf/#{gitolite_conf}]
+diff = shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' diff --staged]
+diff_msg = "  "+diff.split("\n").join("\n  ")
+logger.info "Output: #{diff_msg}"
 
 	    # Remove keys for deleted users
 	    orphanString=flags[:resync_all] ? "orphan " : ""
@@ -806,8 +815,21 @@ module GitHosting
 		    end
 		end
 	    end
+	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' add conf/#{gitolite_conf}]
+diff = shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' diff --staged]
+diff_msg = "  "+diff.split("\n").join("\n  ")
+logger.info "Output: #{diff_msg}"
 
 	    conf = GitoliteConfig.new(File.join(repo_dir, 'conf', gitolite_conf))
+	    if conf.changed? || force_change
+		conf.save
+		changed = true
+	    end
+		logger.info "First output"
+	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' add conf/#{gitolite_conf}]
+diff = shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' diff --staged]
+diff_msg = "  "+diff.split("\n").join("\n  ")
+logger.info "Output: #{diff_msg}"
 
 	    # Current redmine repositories (basename=>{repo_name1=>true,repo_name2=>true})
 	    redmine_repos = conf.redmine_repo_map
@@ -823,6 +845,14 @@ module GitHosting
 
 	    # Flag to force conf file to get new timestamp
 	    force_change = false
+	    if conf.changed? || force_change
+		conf.save
+		changed = true
+	    end
+	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' add conf/#{gitolite_conf}]
+diff = shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' diff --staged]
+diff_msg = "  "+diff.split("\n").join("\n  ")
+logger.info "Output: #{diff_msg}"
 
 	    # Regenerate configuration file for repos of projects of interest
 	    # Also, try to match up actual repositories with projects (being somewhat conservative
@@ -843,6 +873,14 @@ module GitHosting
 			proj_read_user_keys += user.gitolite_public_keys.active.user_key.map(&:identifier)
 		    end
 		end
+	    if conf.changed? || force_change
+		conf.save
+		changed = true
+	    end
+	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' add conf/#{gitolite_conf}]
+diff = shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' diff --staged]
+diff_msg = "  "+diff.split("\n").join("\n  ")
+logger.info "Output: #{diff_msg}"
 
 		proj.gl_repos.each do |repo|
 		    repo_name = repository_name(repo)
@@ -963,6 +1001,14 @@ module GitHosting
 		    end
 		end
 	    end
+	    if conf.changed? || force_change
+		conf.save
+		changed = true
+	    end
+	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' add conf/#{gitolite_conf}]
+diff = shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' diff --staged]
+diff_msg = "  "+diff.split("\n").join("\n  ")
+logger.info "Output: #{diff_msg}"
 
 	    # If resyncing or deleting, check for orphan repositories which still have redmine keys...
 	    # At this point, redmine_repos contains all repositories in original gitolite.conf
@@ -1003,11 +1049,23 @@ module GitHosting
 		# Delete expired files from recycle bin.
 		GitoliteRecycle.delete_expired_files
 	    end
+	    if conf.changed? || force_change
+		conf.save
+		changed = true
+	    end
+	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' add conf/#{gitolite_conf}]
+diff = shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' diff --staged]
+diff_msg = "  "+diff.split("\n").join("\n  ")
+logger.info "Output: #{diff_msg}"
 
 	    if conf.changed? || force_change
 		conf.save
 		changed = true
 	    end
+	    shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' add conf/#{gitolite_conf}]
+diff = shell %[env GIT_SSH=#{gitolite_ssh()} git --git-dir='#{repo_dir}/.git' --work-tree='#{repo_dir}' diff --staged]
+diff_msg = "  "+diff.split("\n").join("\n  ")
+logger.info "Output: #{diff_msg}"
 
 	    if changed
 		# Have changes. Commit / push changes to gitolite admin repo
